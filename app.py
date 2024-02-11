@@ -1,7 +1,8 @@
 import gradio as gr
 from logic import *
 from environment import OUTPUT_PATH, DOWNLOAD_PATH, RECORDING_PATH, CACHE_FILE, DEFAULT_MODEL_LANGUAGE, DEFAULT_MODEL, DEFAULT_LANGUAGE
-
+from fastapi import FastAPI
+from starlette.middleware.wsgi import WSGIMiddleware
 
 # create output folder
 OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
@@ -11,6 +12,8 @@ DOWNLOAD_PATH.mkdir(parents=True, exist_ok=True)
 RECORDING_PATH.mkdir(parents=True, exist_ok=True)
 # update or create cache file
 update_cachefile(CACHE_FILE)
+
+fastapi_app = FastAPI()
 
 
 with gr.Blocks(css=get_css(), title="Transcription", theme="default") as page:
@@ -42,8 +45,7 @@ with gr.Blocks(css=get_css(), title="Transcription", theme="default") as page:
                 label="Выберите язык (оригинал или английский для перевода)",
                 choices=list(LANGUAGES.keys()),
                 value=DEFAULT_LANGUAGE,
-                type="value",
-                interactive=True
+                type="value"
             )
 
     # Input / Output
@@ -59,7 +61,7 @@ with gr.Blocks(css=get_css(), title="Transcription", theme="default") as page:
                 with gr.Row() as yt_preview:
                     yt_thumbnail = gr.Image(
                         label="Thumbnail", interactive=False)
-                    yt_preview_data = gr.Markdown(interactive=False)
+                    yt_preview_data = gr.Markdown()
                 yt_audio = gr.Audio(visible=False, type="filepath")
                 with gr.Row():
                     reset_button0 = gr.Button("Clear", elem_id="clear-button0")
@@ -69,7 +71,7 @@ with gr.Blocks(css=get_css(), title="Transcription", theme="default") as page:
             # Video Tab
             with gr.Tab("Video", id=1):
                 video_file_input1 = gr.Video(
-                    label="Video", source="upload", type="filepath")
+                    label="Video", sources="upload", format="filepath")
                 with gr.Row():
                     reset_button1 = gr.Button("Clear", elem_id="clear-button1")
                     text_button1 = gr.Button(
@@ -78,7 +80,7 @@ with gr.Blocks(css=get_css(), title="Transcription", theme="default") as page:
             # Audio Tab
             with gr.Tab("Audio", id=2):
                 audio_file_input2 = gr.Audio(
-                    label="Audio", source="upload", type="filepath")
+                    label="Audio", sources="upload", type="filepath")
                 with gr.Row():
                     reset_button2 = gr.Button("Clear", elem_id="clear-button2")
                     text_button2 = gr.Button(
@@ -87,7 +89,7 @@ with gr.Blocks(css=get_css(), title="Transcription", theme="default") as page:
             # Microphone Recording Tab
             with gr.Tab("Microphone", id=3):
                 audio_file_input3 = gr.Audio(
-                    label="Audio Recording", source="microphone", type="filepath")
+                    label="Audio Recording", sources="microphone", type="filepath")
                 save_recording_button3 = gr.Button("Save Recording")
                 save_recording_out3 = gr.Markdown()
                 with gr.Row():
@@ -174,4 +176,16 @@ with gr.Blocks(css=get_css(), title="Transcription", theme="default") as page:
         fn=reset_value, inputs=[], outputs=[save_recording_out3]
     )
 
-page.launch()
+app = page.app
+
+app.mount("/gradio", WSGIMiddleware(app))
+
+
+@fastapi_app.get("/")
+async def root():
+    return {"message": "Перейдите к /gradio для приложения транскрипции."}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

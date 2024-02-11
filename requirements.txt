@@ -1,6 +1,9 @@
-gradio==3.5
-python-dotenv==0.21.0
-whisper @ git+https://github.com/openai/whisper.git@62fe7f1009a534986ac1d32a4aef8c244d029c28
+gradio==4.18.0
+python-dotenv==1.0.1
+openai-whisper
 pytube==15.0.0
 moviepy==1.0.3
-httpx==0.24.1
+httpx==0.26.0
+fastapi
+uvicorn
+whisper @ git+https://github.com/openai/whisper.git@62fe7f1009a534986ac1d32a4aef8c244d029c28
